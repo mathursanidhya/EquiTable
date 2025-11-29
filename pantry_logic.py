@@ -13,6 +13,15 @@ from google.adk.tools import AgentTool, ToolContext, FunctionTool
 from google.adk.code_executors import BuiltInCodeExecutor
 from google.adk.apps.app import App, ResumabilityConfig
 
+# If running inside Streamlit, prefer st.secrets as a fallback for env var
+try:
+    import streamlit as _st
+    # only set env var when not already set
+    if not os.getenv("GOOGLE_API_KEY") and "GOOGLE_API_KEY" in _st.secrets:
+        os.environ["GOOGLE_API_KEY"] = _st.secrets["GOOGLE_API_KEY"]
+except Exception:
+    # not running in Streamlit or st.secrets not available; keep going
+    pass
 
 # ---------- ASYNC LOOP HELPER (for Streamlit & sync code) ----------
 
