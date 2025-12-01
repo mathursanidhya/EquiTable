@@ -14,7 +14,7 @@ from pantry_logic import (
 # --------------------------------------------------------------------
 st.set_page_config(
     layout="wide",
-    page_title="Equi-Table",
+    page_title="EquiTable",
     page_icon="🥫",
 )
 
