@@ -10,7 +10,7 @@
 ## 📖 The Problem
 Food pantries are high-stress environments. Volunteers often face the **"Chaos of Compassion"**: trying to mentally juggle complex point systems, track real-time shortages, and enforce substitution rules while maintaining a dignified connection with families.
 
-**EquiTable** acts as a "Shift Lead" AI. It abstracts the logistics, allowing volunteers to focus on people, not paperwork.
+**EquiTable** acts as a "Shift Lead" AI. It abstracts the logistics, allowing volunteers to focus on people,not paperwork.
 
 ## 🏗️ Architecture
 EquiTable utilizes a **Hub-and-Spoke Multi-Agent Architecture** orchestrated by the Google Agent Development Kit (ADK). This ensures that logic (rules) and arithmetic (math) are handled by specialists, preventing AI hallucinations.
@@ -42,5 +42,43 @@ This project implements 5 key concepts from the AI Agents curriculum:
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/YOUR_USERNAME/EquiTable.git](https://github.com/YOUR_USERNAME/EquiTable.git)
+   git clone https://github.com/mathursanidhya/EquiTable.git
    cd EquiTable
+
+2. **Install Dependancies:**
+   ```bash
+   pip install -r requirements.txt
+
+3. **Set up credentials:**
+
+   Create a .env file in the root directory.
+   
+   Add your API key: GOOGLE_API_KEY=your_actual_api_key_here
+
+   (Note: In production, this is handled via Streamlit Secrets).
+
+5. **Run the application:**
+   ```bash
+   streamlit run app.py
+
+
+## 🎥 Video Demo
+[Link to your YouTube Video]
+
+## 💻 Usage Guide
+
+### **1. Inventory Management**
+Use the **"Inventory"** tab to instantly update stock levels. The system writes these to a persistent database, ensuring the Policy Agent always has up-to-date data.
+
+### **2. The Volunteer Desk**
+Type complex requests like: *"Family of 5 wants to swap Milk for Chicken, due to Milk Allergy."*
+The agent will:
+* Calculate the points allowance.
+* Check the database for Bean availability.
+* Check fairness rules (e.g., allergy exceptions).
+* Return an **"Approved"** or **"Declined"** verdict.
+
+### **3. Surplus Donations**
+Input surplus items (e.g., *"50 trays of canned chicken"*). The agent scans for open partner shelters and **pauses** for your approval before confirming the route.
+
+*Created by Sanidhya Mathur*
