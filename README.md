@@ -66,9 +66,6 @@ This project implements 5 key concepts from the AI Agents curriculum:
    streamlit run app.py
 
 
-## 🎥 Video Demo
-[Link to your YouTube Video]
-
 ## 💻 Usage Guide
 
 ### **1. Inventory Management**
