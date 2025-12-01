@@ -15,7 +15,11 @@ Food pantries are high-stress environments. Volunteers often face the **"Chaos o
 ## 🏗️ Architecture
 EquiTable utilizes a **Hub-and-Spoke Multi-Agent Architecture** orchestrated by the Google Agent Development Kit (ADK). This ensures that logic (rules) and arithmetic (math) are handled by specialists, preventing AI hallucinations.
 
-![Architecture Diagram](image_922526.jpg)
+<img width="2816" height="1536" alt="The Fairness Logic" src="https://github.com/user-attachments/assets/03f2c03a-9821-495b-8498-6494a8975361" />
+
+<img width="2816" height="1536" alt="The Donation Flow" src="https://github.com/user-attachments/assets/c7fa198b-7eb7-4167-a95d-2153e06d4b11" />
+
+<img width="2816" height="1536" alt="The Inventory Flow" src="https://github.com/user-attachments/assets/f4d6a6df-c013-4a01-892a-366981df859c" />
 
 ### **The Agent Squad**
 1.  **Pantry Coordinator (Root Agent):** The interface. Understands natural language and routes tasks.
