@@ -183,7 +183,7 @@ STATUS_LABELS_REVERSE = {v: k for k, v in STATUS_LABELS.items()}
 # Streamlit layout
 # --------------------------------------------------------------------
 
-st.title("🥫 Equi-Table")
+st.title("🥫 EquiTable")
 st.markdown(
     "A real-time inventory brain for volunteers who need to make fast, fair, "
     "and kind decisions. Let the system handle the logistics while you serve "
