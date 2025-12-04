@@ -12,7 +12,7 @@ Food pantries are high-stress environments. Volunteers often face the **"Chaos o
 
 **EquiTable** acts as a "Shift Lead" AI. It abstracts the logistics, allowing volunteers to focus on people,not paperwork.
 
-## 🏗️ Architecture
+## 🏗️ Architecture 
 EquiTable utilizes a **Hub-and-Spoke Multi-Agent Architecture** orchestrated by the Google Agent Development Kit (ADK). This ensures that logic (rules) and arithmetic (math) are handled by specialists, preventing AI hallucinations.
 
 <img width="2816" height="1536" alt="The Fairness Logic" src="https://github.com/user-attachments/assets/03f2c03a-9821-495b-8498-6494a8975361" />
