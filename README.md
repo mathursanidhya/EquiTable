@@ -3,7 +3,7 @@
 ### **Empowering food pantry volunteers to make fast, fair, and kind decisions using a Multi-Agent AI System.**
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://sani-equitable.streamlit.app/)
-*Built for the Google X Kaggle AI Agents Capstone (Agents for Good Track)*
+*Built for the Google X Kaggle AI Agents Capstone (Agents for Good Track)* 
 
 ---
 
