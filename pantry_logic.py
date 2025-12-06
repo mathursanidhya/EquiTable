@@ -13,7 +13,7 @@ from google.adk.tools import AgentTool, ToolContext, FunctionTool
 from google.adk.code_executors import BuiltInCodeExecutor
 from google.adk.apps.app import App, ResumabilityConfig
 
-# If running inside Streamlit, prefer st.secrets as a fallback for env var
+# If running inside Streamlit, please prefer st.secrets as a fallback for env var
 try:
     import streamlit as _st
     # only set env var when not already set
