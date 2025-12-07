@@ -1,4 +1,5 @@
 # pantry_logic.py
+# ---------------- BEGIN FILE -----------------
 import os
 import uuid
 import asyncio
@@ -12,6 +13,7 @@ from google.adk.tools import AgentTool, ToolContext, FunctionTool
 from google.adk.code_executors import BuiltInCodeExecutor
 from google.adk.apps.app import App, ResumabilityConfig
 
+# If running inside Streamlit, please prefer st.secrets as a fallback for env var
 try:
     import streamlit as _st
     # only set env var when not already set
@@ -482,3 +484,101 @@ async def start_donation_async(item_type: str) -> tuple[str, bool, str | None]:
     pause/resume machinery so the UI is stable.
     """
     item_lower = item_type.lower().strip()
+
+    # 1) Find a matching partner (same logic as the tool)
+    match = None
+    for p in PARTNER_SHELTERS:
+        if any(keyword in item_lower for keyword in p["accepts"]):
+            match = p
+            break
+
+    if not match:
+        message = (
+            "I couldn't find a good partner shelter for that specific kind of food. "
+            "You may need to hold it on site or check with the coordinator."
+        )
+        return message, False, None
+
+    # 2) Build a clear banner message for the UI
+    accepts_preview = ", ".join(match["accepts"][:5])
+    message = (
+        f"I've found a partner for the extra {item_type}: "
+        f"{match['name']} ({match['status']}). "
+        f"They typically accept items like {accepts_preview}. "
+        "Please review and decide whether to approve this donation."
+    )
+
+    # 3) Record a pending session for human approval
+    token = uuid.uuid4().hex
+    DONATION_SESSIONS[token] = {
+        "item_type": item_type,
+        "partner_name": match["name"],
+        "partner_status": match["status"],
+        "partner_accepts": match["accepts"],
+    }
+
+    return message, True, token
+
+
+async def confirm_donation_async(token: str, approve: bool) -> str:
+    """
+    Complete a pending donation flow after human approval/rejection,
+    *without* depending on ADK resumability for the UI.
+
+    The long-running pattern is still demonstrated inside the
+    find_donation_partner_safe tool via tool_context.request_confirmation.
+    """
+    info = DONATION_SESSIONS.get(token)
+    if not info:
+        return "No pending donation request was found. Please start a new one."
+
+    item = info["item_type"]
+    name = info["partner_name"]
+
+    # Clean up the pending session now that a decision has been made
+    DONATION_SESSIONS.pop(token, None)
+
+    if approve:
+        return (
+            f"I've recorded your approval. We'll send the information needed for "
+            f"volunteers or drivers to transfer the extra {item} to {name}."
+        )
+    else:
+        return (
+            f"I'm sorry, but it looks like {name} isn't able to accept the {item} right now. "
+            "You can keep the food on site for now or try a different partner later."
+        )
+
+
+# ---------- POLICY QUESTIONS ----------
+
+async def ask_policy_async(query: str) -> str:
+    """
+    Ask the Pantry Coordinator a policy question in natural language.
+    Uses the same main session so it can see inventory updates.
+    """
+    return await _run_once(query, session_id=SESSION_ID_MAIN)
+
+
+# ---------- PUBLIC SYNC WRAPPERS (for Streamlit) ----------
+
+def update_item_status(item_name: str, status: str) -> str:
+    return run_sync(update_item_status_async(item_name, status))
+
+
+def check_item_status(item_name: str) -> str:
+    return run_sync(check_item_status_async(item_name))
+
+
+def start_donation(item_type: str) -> tuple[str, bool, str | None]:
+    return run_sync(start_donation_async(item_type))
+
+
+def confirm_donation(token: str, approve: bool) -> str:
+    return run_sync(confirm_donation_async(token, approve))
+
+
+def ask_policy(query: str) -> str:
+    """Sync wrapper for Streamlit."""
+    return run_sync(ask_policy_async(query))
+# ----------------- END FILE -----------------
