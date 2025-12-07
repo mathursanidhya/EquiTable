@@ -1,5 +1,4 @@
 # pantry_logic.py
-
 import os
 import uuid
 import asyncio
@@ -57,11 +56,14 @@ def run_sync(coro):
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if not GOOGLE_API_KEY:
-    raise RuntimeError(
-        "GOOGLE_API_KEY is not set. "
-        "Set it as an environment variable before running the app."
+    # Do not raise here so the app can render a friendly UI warning during debugging.
+    import warnings
+    warnings.warn(
+        "GOOGLE_API_KEY is not set. Model calls will fail. "
+        "Set GOOGLE_API_KEY in the environment or Streamlit secrets for full functionality."
     )
-os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
+else:
+    os.environ["GOOGLE_API_KEY"] = GOOGLE_API_KEY
 
 
 # ---------- MODEL CONFIG ----------
@@ -315,7 +317,7 @@ Your job:
 - NEVER answer directly without calling this tool.
 - Rely on the tool's built-in pause/resume (human-in-the-loop) flow.
 
-Your entire job is:
+Your entire job is to:
 1) Call find_donation_partner_safe(item_type)
 2) Return the tool's text back to the Pantry Coordinator.
 """,
@@ -380,10 +382,41 @@ pantry_app = App(
     resumability_config=ResumabilityConfig(is_resumable=True),
 )
 
+# ---------- DB URL (writable path, configurable) ----------
+# Use PANTRY_DB_URL env var (set in Streamlit secrets / host env). Fallback to /tmp/pantry.db
+DEFAULT_DB_PATH = "/tmp/pantry.db"
+db_url_env = os.getenv("PANTRY_DB_URL")
+if db_url_env:
+    DB_URL = db_url_env
+else:
+    # sqlite absolute path uses four slashes after sqlite+aiosqlite:
+    DB_URL = f"sqlite+aiosqlite:////{DEFAULT_DB_PATH.lstrip('/')}"
+
+# Ensure the file & parent dir exist with writable permissions (best-effort)
+if DB_URL.startswith("sqlite"):
+    try:
+        # Extract absolute path (after sqlite+aiosqlite:////)
+        path = DB_URL.split(":", 2)[-1].lstrip("/")
+        path = "/" + path  # absolute path
+        parent = os.path.dirname(path)
+        if parent and not os.path.exists(parent):
+            os.makedirs(parent, exist_ok=True)
+        # Create file if missing
+        if not os.path.exists(path):
+            open(path, "a").close()
+            try:
+                os.chmod(path, 0o666)  # readable/writable by all users (best-effort)
+            except Exception:
+                # some hosts don't allow chmod; ignore
+                pass
+    except Exception:
+        # fall back silently; host may restrict filesystem ops
+        pass
+
 runner = Runner(
     app=pantry_app,
     session_service=DatabaseSessionService(
-        db_url="sqlite+aiosqlite:///./pantry.db",
+        db_url=DB_URL,
     ),
 )
 
@@ -432,11 +465,6 @@ async def check_item_status_async(item_name: str) -> str:
 
 # ---------- DONATION (HITL) HELPERS ----------
 
-# ---------- DONATION (HITL) HELPERS ----------
-# NOTE: The Donation_Logistics agent + find_donation_partner_safe still
-# uses tool_context.request_confirmation for the capstone rubric.
-# For the UI, we run a simple, robust Python-based HITL flow here.
-
 DONATION_SESSIONS: dict[str, dict] = {}
 
 
@@ -455,101 +483,3 @@ async def start_donation_async(item_type: str) -> tuple[str, bool, str | None]:
     pause/resume machinery so the UI is stable.
     """
     item_lower = item_type.lower().strip()
-
-    # 1) Find a matching partner (same logic as the tool)
-    match = None
-    for p in PARTNER_SHELTERS:
-        if any(keyword in item_lower for keyword in p["accepts"]):
-            match = p
-            break
-
-    if not match:
-        message = (
-            "I couldn't find a good partner shelter for that specific kind of food. "
-            "You may need to hold it on site or check with the coordinator."
-        )
-        return message, False, None
-
-    # 2) Build a clear banner message for the UI
-    accepts_preview = ", ".join(match["accepts"][:5])
-    message = (
-        f"I've found a partner for the extra {item_type}: "
-        f"{match['name']} ({match['status']}). "
-        f"They typically accept items like {accepts_preview}. "
-        "Please review and decide whether to approve this donation."
-    )
-
-    # 3) Record a pending session for human approval
-    token = uuid.uuid4().hex
-    DONATION_SESSIONS[token] = {
-        "item_type": item_type,
-        "partner_name": match["name"],
-        "partner_status": match["status"],
-        "partner_accepts": match["accepts"],
-    }
-
-    return message, True, token
-
-
-async def confirm_donation_async(token: str, approve: bool) -> str:
-    """
-    Complete a pending donation flow after human approval/rejection,
-    *without* depending on ADK resumability for the UI.
-
-    The long-running pattern is still demonstrated inside the
-    find_donation_partner_safe tool via tool_context.request_confirmation.
-    """
-    info = DONATION_SESSIONS.get(token)
-    if not info:
-        return "No pending donation request was found. Please start a new one."
-
-    item = info["item_type"]
-    name = info["partner_name"]
-
-    # Clean up the pending session now that a decision has been made
-    DONATION_SESSIONS.pop(token, None)
-
-    if approve:
-        return (
-            f"I've recorded your approval. We'll send the information needed for "
-            f"volunteers or drivers to transfer the extra {item} to {name}."
-        )
-    else:
-        return (
-            f"I'm sorry, but it looks like {name} isn't able to accept the {item} right now. "
-            "You can keep the food on site for now or try a different partner later."
-        )
-
-
-
-# ---------- POLICY QUESTIONS ----------
-
-async def ask_policy_async(query: str) -> str:
-    """
-    Ask the Pantry Coordinator a policy question in natural language.
-    Uses the same main session so it can see inventory updates.
-    """
-    return await _run_once(query, session_id=SESSION_ID_MAIN)
-
-
-# ---------- PUBLIC SYNC WRAPPERS (for Streamlit) ----------
-
-def update_item_status(item_name: str, status: str) -> str:
-    return run_sync(update_item_status_async(item_name, status))
-
-
-def check_item_status(item_name: str) -> str:
-    return run_sync(check_item_status_async(item_name))
-
-
-def start_donation(item_type: str) -> tuple[str, bool, str | None]:
-    return run_sync(start_donation_async(item_type))
-
-
-def confirm_donation(token: str, approve: bool) -> str:
-    return run_sync(confirm_donation_async(token, approve))
-
-
-def ask_policy(query: str) -> str:
-    """Sync wrapper for Streamlit."""
-    return run_sync(ask_policy_async(query))
